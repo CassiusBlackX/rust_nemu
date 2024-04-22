@@ -1,5 +1,5 @@
 use std::fs;
-use r_emu::{config::DRAM_BASE, emulator::Emulator};
+use rust_nemu::{config::DRAM_BASE, emulator::Emulator};
 
 fn main() {
     env_logger::init();

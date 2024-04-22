@@ -1,5 +1,5 @@
 [package]
-name = "r_emu"
+name = "rust_nemu"
 version = "0.1.0"
 edition = "2021"
 
