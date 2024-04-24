@@ -47,7 +47,7 @@ impl Cpu {
             pc: 0,
             mem: Dram::new(),
             instr_counter: BTreeMap::new(),
-            is_count: false,
+            is_count: true,
             pre_instr: 0,
         }
     }
@@ -69,6 +69,12 @@ impl Cpu {
             instr,
             instr_type.green()
         );
+    }
+
+    pub fn print_instr_counter(&self) {
+        for (instr, count) in self.instr_counter.iter() {
+            log::warn!("{}: {}", instr, count);
+        }
     }
 
     /// translate a virtual address to a physical address
@@ -147,6 +153,9 @@ impl Cpu {
                         // add x[rs2] to x[rs1], write to x[rd]
                         instr_count!(self, add);
                         self.trace(instr, "add");
+
+                        // DEBUG
+                        log::debug!("{}:{}: the value of x[rd] is 0x{:08x}, x[rs1]{:08x}, x[rs2]{:08x}", file!(), line!(), self.xregs.read(rd), self.xregs.read(rs1), self.xregs.read(rs2));
 
                         self.xregs
                             .write(rd, compute::add(self.xregs.read(rs1), self.xregs.read(rs2)));
@@ -300,6 +309,10 @@ impl Cpu {
                         instr_count!(self, addi);
                         self.trace(instr, "addi");
 
+                        // DEBUG
+                        log::debug!("{}:{}: the value of x[rd] is 0x{:08x}, 0x[rs1] {:08x}, imm {:08x}", file!(), line!(), self.xregs.read(rd), self.xregs.read(rs1), imm);
+                        log::debug!("the value of gp:{}", self.xregs.read(3));
+
                         self.xregs
                             .write(rd, compute::addi(self.xregs.read(rs1), imm));
                     }
@@ -318,8 +331,7 @@ impl Cpu {
                         let temp = self.pc.wrapping_add(4);
                         let target = ((self.xregs.read(rs1) as i32).wrapping_add(offset)) & !1;
 
-                        // FIXME 目前无法正确处理函数的返回部分的问题！
-                        log::warn!("the target pc is 0x{:08x}, the read value of ra is {}", target, self.xregs.read(rs1) as i32);
+                        // FIXME 目前无法正确处理函数的返回部分的问题?? 似乎可以了
 
                         self.pc = (target as u32).wrapping_sub(4);
                         self.xregs.write(rd, temp);
@@ -355,8 +367,12 @@ impl Cpu {
                     ExecID::lw => {
                         instr_count!(self, lw);
                         self.trace(instr, "lw");
+                        
+                        // DEBUG
+                        log::debug!("{}:{}: the value read from the addr 0x{:08x}", file!(), line!(), addr);
 
                         let val = self.read(addr, WORD)?;
+
                         self.xregs.write(rd, val);
                     }
                     ExecID::ori => {
@@ -432,10 +448,10 @@ impl Cpu {
             }
             InstrType::B => {
                 // imm[12|10:5|4:1|11] = inst[31|30:25|11:8|7]
-                let imm = ((((instr & 0x80000000) as i32) >> 19) as u32)
-                    | ((instr & 0x00000080) << 4)
-                    | ((instr & 0x7e000000) >> 20)
-                    | ((instr & 0x00000f00) >> 7);
+                let imm = (((instr & 0x80000000) as i32 >> 19) as u32)
+                    | ((instr & 0x80) << 4) // imm[11]
+                    | ((instr >> 20) & 0x7e0) // imm[10:5]
+                    | ((instr >> 7) & 0x1e); // imm[4:1]
 
                 match exec_id {
                     ExecID::beq => {
@@ -511,6 +527,7 @@ impl Cpu {
                 let offset =
                     (((instr & 0xfe000000) as i32 >> 20) as u32) | ((instr >> 7) & 0x1f);
                 let addr = self.xregs.read(rs1).wrapping_add(offset);
+                log::trace!("the S-Type rs1 is 0x{:08x}, offset is 0x{:08x}, addr is 0x{:08x}", self.xregs.read(rs1), offset, addr);
                 match exec_id {
                     ExecID::sb => {
                         instr_count!(self, sb);
@@ -538,10 +555,12 @@ impl Cpu {
                     let result = get_nemu_trap_cause(instr);
                     match result {
                         NemuTrapCause::Success => {
+                            self.print_instr_counter();
                             log::info!("exit normally!");
                             return Ok(ExecutionException::Success);
                     }
                         NemuTrapCause::Failed => {
+                            self.print_instr_counter();
                             log::error!("exit abnormally!");
                             return Ok(ExecutionException::Failed);
                         }

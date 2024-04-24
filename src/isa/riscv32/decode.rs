@@ -106,6 +106,59 @@ impl ExecID {
     }
 }
 
+impl std::fmt::Display for ExecID {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let instr_name = match *self {
+            ExecID::add => "add",
+            ExecID::addi => "addi",
+            ExecID::and => "and",
+            ExecID::andi => "andi",
+            ExecID::auipc => "auipc",
+            ExecID::beq => "beq",
+            ExecID::bge => "bge",
+            ExecID::bgeu => "bgeu",
+            ExecID::blt => "blt",
+            ExecID::bltu => "bltu",
+            ExecID::bne => "bne",
+            ExecID::div => "div",
+            ExecID::divu => "divu",
+            ExecID::Invalid => "Invalid",
+            ExecID::jal => "jal",
+            ExecID::jalr => "jalr",
+            ExecID::lb => "lb",
+            ExecID::lbu => "lbu",
+            ExecID::lh => "lh",
+            ExecID::lhu => "lhu",
+            ExecID::lui => "lui",
+            ExecID::lw => "lw",
+            ExecID::mul => "mul",
+            ExecID::mulh => "mulh",
+            ExecID::mulhu => "mulhu",
+            ExecID::NemuTrap => "NemuTrap",
+            ExecID::or => "or",
+            ExecID::ori => "ori",
+            ExecID::rem => "rem",
+            ExecID::remu => "remu",
+            ExecID::sb => "sb",
+            ExecID::sh => "sh",
+            ExecID::sll => "sll",
+            ExecID::slli => "slli",
+            ExecID::slt => "slt",
+            ExecID::slti => "slti",
+            ExecID::sltiu => "sltiu",
+            ExecID::sltu => "sltu",
+            ExecID::sra => "sra",
+            ExecID::srai => "srai",
+            ExecID::srl => "srl",
+            ExecID::srli => "srli",
+            ExecID::sub => "sub",
+            ExecID::sw => "sw",
+            ExecID::xor => "xor",
+            ExecID::xori => "xori",
+        };
+        write!(f, "{}", instr_name)
+    }
+}
 // fn pattern_decode(pattern: &str, key: &mut u32, mask: &mut u32, shift: &mut u32) {
 //     let mut key_val: u32 = 0;
 //     let mut mask_val: u32 = 0;
@@ -128,7 +181,6 @@ impl ExecID {
 //     *mask = mask_val >> shift_val;
 //     *shift = shift_val;
 // }
-// FIXME pattern_decode函数实现错误！！！
 fn pattern_decode(str: &str, key: &mut u32, mask: &mut u32, shift: &mut u32) {
     let mut __key: u32 = 0;
     let mut __mask: u32 = 0;

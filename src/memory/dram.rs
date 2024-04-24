@@ -3,7 +3,7 @@ use crate::{config::{WordT, BYTE, DRAM_BASE, DRAM_SIZE, HALFWORD, WORD}, excepti
 use crate::config::DOUBLEWORD;
 
 /// use a vector to simu mem
-/// for precise manipulation, use `Vec<u8>`
+/// for precise manipulation, we use `Vec<u8>`
 #[derive(Debug)]
 pub struct Dram {
     pub dram: Vec<u8>,
@@ -112,5 +112,24 @@ impl Dram {
     fn read64(&self, addr: WordT) -> WordT {
         let index = (addr - DRAM_BASE) as usize;
         (self.dram[index] as WordT) | ((self.dram[index+1] as WordT) << 8) | ((self.dram[index+2] as WordT) << 16) | ((self.dram[index+3] as WordT) << 24) | ((self.dram[index+4] as WordT) << 32) | ((self.dram[index+5] as WordT) << 40) | ((self.dram[index+6] as WordT) << 48) | ((self.dram[index+7] as WordT) << 56)
+    }
+}
+
+mod test {
+    #[allow(unused_imports)]
+    use super::*;
+    #[test]
+    fn test_read_hl() {
+        let mut dram = Dram::new();
+        let data = vec![0x00, 0x00, 0x58, 0x02, 0xbc, 0x4a, 0xff, 0x7f, 0x00, 0x80, 0x00, 0x81, 0xcd, 0xab, 0xff, 0xff];
+        dram.initialize(data);
+        assert_eq!(dram.read(DRAM_BASE, HALFWORD).unwrap(), 0x00000000u32);
+        assert_eq!(dram.read(DRAM_BASE+2, HALFWORD).unwrap(), 0x00000258u32);
+        assert_eq!(dram.read(DRAM_BASE+4, HALFWORD).unwrap(), 0x00004abcu32);
+        assert_eq!(dram.read(DRAM_BASE+6, HALFWORD).unwrap(), 0x00007fffu32);
+        assert_eq!(dram.read(DRAM_BASE+8, HALFWORD).unwrap(), 0x00008000u32);
+        assert_eq!(dram.read(DRAM_BASE+10, HALFWORD).unwrap(), 0x00008100u32);
+        assert_eq!(dram.read(DRAM_BASE+12, HALFWORD).unwrap(), 0x0000abcdu32);
+        assert_eq!(dram.read(DRAM_BASE+14, HALFWORD).unwrap(), 0x0000ffffu32);
     }
 }

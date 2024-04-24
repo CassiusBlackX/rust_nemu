@@ -31,18 +31,18 @@ impl Emulator {
 
     /// run the emulator
     pub fn run(&mut self) {
-        for _ in 0..100000 {
+        for _ in 0..u32::MAX {
             match self.cpu.execute() {
                 Ok(ExecutionException::Success) => {
-                    log::info!("emulator exited successfully");
+                    log::info!("{}:{}  emulator exited successfully", file!(), line!());
                     return;
                 }
                 Ok(ExecutionException::Failed) => {
-                    panic!("Error in executing the instruction!, emulator exited with failure");
+                    panic!("{}:{}  Error in executing the instruction!, emulator exited with failure", file!(), line!());
                 }
                 Ok(ExecutionException::Executing) => {}
                 Err(_) => {
-                    panic!("Error in executing the instruction!");
+                    panic!("{}:{}  Error in executing the instruction!", file!(), line!());
                 }
             }
         }

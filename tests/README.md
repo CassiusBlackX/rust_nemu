@@ -15,7 +15,7 @@ $ riscv64-unknown-elf-objcopy -O binary foo foo.text
 
 ### our version
 ```
-riscv32-unknown-linux-gnu-gcc  -march=rv32i -nostdlib -Wl,-N,-Ttext=0x80000000 -o dummy dummy.c
+riscv32-unknown-linux-gnu-gcc  -march=rv32im -nostdlib -Wl,-N,-Ttext=0x80000000 -o dummy dummy.c
 riscv32-unknown-linux-gnu-objcopy -O binary dummy dummy.bin
-riscv32-unknown-linux-gnu-objdump -d -M no-aliases dummy > dummy.d
+riscv32-unknown-linux-gnu-objdump -d -M no-aliases dummy > dummy.asm
 ```
