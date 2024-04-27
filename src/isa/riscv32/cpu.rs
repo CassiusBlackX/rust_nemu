@@ -73,7 +73,7 @@ impl Cpu {
 
     pub fn print_instr_counter(&self) {
         for (instr, count) in self.instr_counter.iter() {
-            log::warn!("{}: {}", instr, count);
+            log::trace!("{}: {}", instr, count);
         }
     }
 
@@ -117,10 +117,11 @@ impl Cpu {
 
     /// execute an instr. Raise exception if sth wrong happens. else return the instr executed
     pub fn execute(&mut self) -> Result<ExecutionException, Exception> {
-        //compressed instructions are not taken into account for now
+        //compressed instructions are not taken into account for, now
         let instr = self.fetch(WORD)?;
+        log::debug!("{}:{}: the current pc is {}, instr is {}",file!(), line!(), format!("0x{:08x}", self.pc).blue(), format!("0x{:08x}", instr).green());
+
         let exe_result = self.execute_general(instr)?;
-        log::debug!("{}:{}: the current pc is 0x{:08x}",file!(), line!(), self.pc);
         match exe_result {
             ExecutionException::Executing => {}
             _ => {
@@ -155,7 +156,7 @@ impl Cpu {
                         self.trace(instr, "add");
 
                         // DEBUG
-                        log::debug!("{}:{}: the value of x[rd] is 0x{:08x}, x[rs1]{:08x}, x[rs2]{:08x}", file!(), line!(), self.xregs.read(rd), self.xregs.read(rs1), self.xregs.read(rs2));
+                        log::debug!("{}:{}: the value of x[rd] is 0x{:08x}, x[rs1]: 0x{:08x}, x[rs2]: 0x{:08x}", file!(), line!(), self.xregs.read(rd), self.xregs.read(rs1), self.xregs.read(rs2));
 
                         self.xregs
                             .write(rd, compute::add(self.xregs.read(rs1), self.xregs.read(rs2)));
@@ -311,7 +312,7 @@ impl Cpu {
 
                         // DEBUG
                         log::debug!("{}:{}: the value of x[rd] is 0x{:08x}, 0x[rs1] {:08x}, imm {:08x}", file!(), line!(), self.xregs.read(rd), self.xregs.read(rs1), imm);
-                        log::debug!("the value of gp:{}", self.xregs.read(3));
+                        // log::debug!("the value of gp:{}", self.xregs.read(3));
 
                         self.xregs
                             .write(rd, compute::addi(self.xregs.read(rs1), imm));
@@ -556,7 +557,7 @@ impl Cpu {
                     match result {
                         NemuTrapCause::Success => {
                             self.print_instr_counter();
-                            log::info!("exit normally!");
+                            log::info!("{}:{} program excution success!", file!(), line!());
                             return Ok(ExecutionException::Success);
                     }
                         NemuTrapCause::Failed => {

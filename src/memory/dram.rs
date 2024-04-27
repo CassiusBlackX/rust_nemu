@@ -119,7 +119,7 @@ mod test {
     #[allow(unused_imports)]
     use super::*;
     #[test]
-    fn test_read_hl() {
+    fn test_read_lhu() {
         let mut dram = Dram::new();
         let data = vec![0x00, 0x00, 0x58, 0x02, 0xbc, 0x4a, 0xff, 0x7f, 0x00, 0x80, 0x00, 0x81, 0xcd, 0xab, 0xff, 0xff];
         dram.initialize(data);
@@ -131,5 +131,20 @@ mod test {
         assert_eq!(dram.read(DRAM_BASE+10, HALFWORD).unwrap(), 0x00008100u32);
         assert_eq!(dram.read(DRAM_BASE+12, HALFWORD).unwrap(), 0x0000abcdu32);
         assert_eq!(dram.read(DRAM_BASE+14, HALFWORD).unwrap(), 0x0000ffffu32);
+    }
+
+    #[test]
+    fn test_read_lh() {
+        let mut dram = Dram::new();
+        let data = vec![0x00, 0x00, 0x58, 0x02, 0xbc, 0x4a, 0xff, 0x7f, 0x00, 0x80, 0x00, 0x81, 0xcd, 0xab, 0xff, 0xff];
+        dram.initialize(data);
+        assert_eq!(dram.read(DRAM_BASE, HALFWORD).unwrap() as i16 as i32 as u32, 0x00000000u32);
+        assert_eq!(dram.read(DRAM_BASE+2, HALFWORD).unwrap() as i16 as i32 as u32, 0x00000258u32);
+        assert_eq!(dram.read(DRAM_BASE+4, HALFWORD).unwrap() as i16 as i32 as u32, 0x00004abcu32);
+        assert_eq!(dram.read(DRAM_BASE+6, HALFWORD).unwrap() as i16 as i32 as u32, 0x00007fffu32);
+        assert_eq!(dram.read(DRAM_BASE+8, HALFWORD).unwrap() as i16 as i32 as u32, 0xffff8000u32);
+        assert_eq!(dram.read(DRAM_BASE+10, HALFWORD).unwrap() as i16 as i32 as u32, 0xffff8100u32);
+        assert_eq!(dram.read(DRAM_BASE+12, HALFWORD).unwrap() as i16 as i32 as u32, 0xffffabcdu32);
+        assert_eq!(dram.read(DRAM_BASE+14, HALFWORD).unwrap() as i16 as i32 as u32, 0xffffffffu32);
     }
 }

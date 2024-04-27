@@ -216,36 +216,42 @@ fn table_load(instr: &u32) -> ExecID {
     let mut mask: u32 = 0;
     let mut shift: u32 = 0;
 
+    pattern_decode(
+        "??????? ????? ????? 010 ????? ????? ??",
+        &mut key,
+        &mut mask,
+        &mut shift,
+    );
     if (instr >> shift) & mask == key {
         return ExecID::lw;
     }
+
     pattern_decode(
         "??????? ????? ????? 100 ????? ????? ??",
         &mut key,
         &mut mask,
         &mut shift,
     );
-
     if (instr >> shift) & mask == key {
         return ExecID::lbu;
     }
+
     pattern_decode(
         "??????? ????? ????? 001 ????? ????? ??",
         &mut key,
         &mut mask,
         &mut shift,
     );
-
     if (instr >> shift) & mask == key {
         return ExecID::lh;
     }
+
     pattern_decode(
         "??????? ????? ????? 101 ????? ????? ??",
         &mut key,
         &mut mask,
         &mut shift,
     );
-
     if (instr >> shift) & mask == key {
         return ExecID::lhu;
     }
@@ -256,7 +262,6 @@ fn table_load(instr: &u32) -> ExecID {
         &mut mask,
         &mut shift,
     );
-
     if (instr >> shift) & mask == key {
         return ExecID::lb;
     }
