@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crate::{exception::ExecutionException, isa::riscv32::cpu::Cpu};
 
 
@@ -7,9 +9,9 @@ pub struct  Emulator {
 }
 
 impl Emulator {
-    pub fn new() -> Emulator {
+    pub fn new(file_name: Option<&PathBuf>) -> Emulator {
         Emulator {
-            cpu: Cpu::new(),
+            cpu: Cpu::new(file_name),
             is_debug: false,
         }
     }

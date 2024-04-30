@@ -7,9 +7,10 @@ use crate::{
     config::{BYTE, HALFWORD, WORD},
     exception::{get_nemu_trap_cause, Exception, ExecutionException, NemuTrapCause},
     memory::dram::Dram,
+    monitor::ftracer::{FTracer, FuncState},
 };
-use std::collections::BTreeMap;
 use colored::*;
+use std::{collections::BTreeMap, path::PathBuf};
 
 macro_rules! instr_count {
     ($cpu: ident, $instr_name: ident) => {
@@ -38,17 +39,42 @@ pub struct Cpu {
     pub is_count: bool,
     /// the previous instruction, for debug
     pub pre_instr: u32,
+    /// the ftracer tracing function
+    pub ftracer: Option<FTracer>,
 }
 
 impl Cpu {
-    pub fn new() -> Self {
-        Cpu {
-            xregs: Regs::new(),
-            pc: 0,
-            mem: Dram::new(),
-            instr_counter: BTreeMap::new(),
-            is_count: true,
-            pre_instr: 0,
+    pub fn new(file_name: Option<&PathBuf>) -> Self {
+        if let Some(file_name) = file_name {
+            log::info!(
+                "{}:{}: ftracer is enabled, the file name is {}",
+                file!(),
+                line!(),
+                file_name.as_path().to_str().unwrap()
+            );
+
+            Cpu {
+                xregs: Regs::new(),
+                pc: 0,
+                mem: Dram::new(),
+                instr_counter: BTreeMap::new(),
+                is_count: true,
+                pre_instr: 0,
+                #[cfg(feature = "ftracer")]
+                ftracer: Some(FTracer::new(file_name)),
+            }
+        } else {
+            log::info!("{}:{}: ftracer is disabled", file!(), line!());
+
+            Cpu {
+                xregs: Regs::new(),
+                pc: 0,
+                mem: Dram::new(),
+                instr_counter: BTreeMap::new(),
+                is_count: true,
+                pre_instr: 0,
+                ftracer: None,
+            }
         }
     }
 
@@ -64,16 +90,28 @@ impl Cpu {
     fn trace(&self, instr: u32, instr_type: &str) {
         log::trace!(
             "{}:{}: pc: 0x{:08x}, instr: 0x{:08x}, instr_type: {}",
-            file!(), line!(),
+            file!(),
+            line!(),
             self.pc,
             instr,
             instr_type.green()
         );
     }
 
-    pub fn print_instr_counter(&self) {
+    fn print_instr_counter(&self) {
         for (instr, count) in self.instr_counter.iter() {
             log::trace!("{}: {}", instr, count);
+        }
+    }
+
+    fn print_ftracer(&self) {
+        match self.ftracer {
+            Some(ref ftracer) => {
+                // log::info!("{}", ftracer);
+                println!("{}", ftracer);
+                println!();
+            }
+            None => {}
         }
     }
 
@@ -119,7 +157,13 @@ impl Cpu {
     pub fn execute(&mut self) -> Result<ExecutionException, Exception> {
         //compressed instructions are not taken into account for, now
         let instr = self.fetch(WORD)?;
-        log::debug!("{}:{}: the current pc is {}, instr is {}",file!(), line!(), format!("0x{:08x}", self.pc).blue(), format!("0x{:08x}", instr).green());
+        log::debug!(
+            "{}:{}: the current pc is {}, instr is {}",
+            file!(),
+            line!(),
+            format!("0x{:08x}", self.pc).blue(),
+            format!("0x{:08x}", instr).green()
+        );
 
         let exe_result = self.execute_general(instr)?;
         match exe_result {
@@ -310,10 +354,6 @@ impl Cpu {
                         instr_count!(self, addi);
                         self.trace(instr, "addi");
 
-                        // DEBUG
-                        log::debug!("{}:{}: the value of x[rd] is 0x{:08x}, 0x[rs1] {:08x}, imm {:08x}", file!(), line!(), self.xregs.read(rd), self.xregs.read(rs1), imm);
-                        // log::debug!("the value of gp:{}", self.xregs.read(3));
-
                         self.xregs
                             .write(rd, compute::addi(self.xregs.read(rs1), imm));
                     }
@@ -332,10 +372,22 @@ impl Cpu {
                         let temp = self.pc.wrapping_add(4);
                         let target = ((self.xregs.read(rs1) as i32).wrapping_add(offset)) & !1;
 
-                        // FIXME 目前无法正确处理函数的返回部分的问题?? 似乎可以了
-
                         self.pc = (target as u32).wrapping_sub(4);
                         self.xregs.write(rd, temp);
+
+                        //FIXME  it is both possible to be a func call and a func ret
+    
+                        match self.ftracer {
+                            Some(ref mut ftracer) => {
+                                if rd == 0 && rs1 == 1 && imm == 0 {
+                                    ftracer.update(self.pc, FuncState::Ret)?;
+                                } else {
+                                    ftracer.update(self.pc, FuncState::Call)?;
+                                }
+                            }
+                            None => {}
+                        }
+
                     }
                     ExecID::lb => {
                         instr_count!(self, lb);
@@ -368,9 +420,6 @@ impl Cpu {
                     ExecID::lw => {
                         instr_count!(self, lw);
                         self.trace(instr, "lw");
-                        
-                        // DEBUG
-                        log::debug!("{}:{}: the value read from the addr 0x{:08x}", file!(), line!(), addr);
 
                         let val = self.read(addr, WORD)?;
 
@@ -520,15 +569,28 @@ impl Cpu {
 
                         self.xregs.write(rd, self.pc.wrapping_add(4));
                         self.pc = self.pc.wrapping_add(offset).wrapping_sub(4);
+
+                        // FIXME it seems that any instr using `jal` is calling a func
+
+                        match self.ftracer {
+                            Some(ref mut ftracer) => {
+                                ftracer.update(self.pc, FuncState::Call)?;
+                            }
+                            None => {}
+                        }
                     }
                     _ => panic!("Incorrect Classification for Instructions!"),
                 }
             }
             InstrType::S => {
-                let offset =
-                    (((instr & 0xfe000000) as i32 >> 20) as u32) | ((instr >> 7) & 0x1f);
+                let offset = (((instr & 0xfe000000) as i32 >> 20) as u32) | ((instr >> 7) & 0x1f);
                 let addr = self.xregs.read(rs1).wrapping_add(offset);
-                log::trace!("the S-Type rs1 is 0x{:08x}, offset is 0x{:08x}, addr is 0x{:08x}", self.xregs.read(rs1), offset, addr);
+                log::trace!(
+                    "the S-Type rs1 is 0x{:08x}, offset is 0x{:08x}, addr is 0x{:08x}",
+                    self.xregs.read(rs1),
+                    offset,
+                    addr
+                );
                 match exec_id {
                     ExecID::sb => {
                         instr_count!(self, sb);
@@ -557,9 +619,10 @@ impl Cpu {
                     match result {
                         NemuTrapCause::Success => {
                             self.print_instr_counter();
+                            self.print_ftracer();
                             log::info!("{}:{} program excution success!", file!(), line!());
                             return Ok(ExecutionException::Success);
-                    }
+                        }
                         NemuTrapCause::Failed => {
                             self.print_instr_counter();
                             log::error!("exit abnormally!");

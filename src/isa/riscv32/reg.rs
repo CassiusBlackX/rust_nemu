@@ -17,7 +17,7 @@ impl fmt::Display for Regs {
             "a6", "a7", "s2", "s3", "s4", "s5", "s6", "s7", 
             "s8", "s9", "s10", "s11","t3", "t4", "t5", "t6",
         ];
-        let mut output = String::from("");
+        let mut output = String::new();
         for i in (0..REGISTERS_COUNT).step_by(4) {
             output = format!(
                 "{}\n{}",

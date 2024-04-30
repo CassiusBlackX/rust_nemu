@@ -17,6 +17,7 @@ pub enum Exception {
     InstructionPageFault(u64),
     LoadPageFault(u64),
     StoreAMOPageFault(u64),
+    FTracerFailed,
 }
 
 pub enum ExecutionException {

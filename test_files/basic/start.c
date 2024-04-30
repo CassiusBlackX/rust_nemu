@@ -26,3 +26,13 @@ void _start()
         "li a0, 0x83fffff0\n"
                  "jalr zero, 0(a0)\n");
 }
+
+void check(int condition)
+{
+    if (!condition)
+    {
+        // 说明执行出现问题，跳转到异常推出机器指令的地址，退出
+        asm volatile("li a0, 0x83fffff4\n"
+                     "jalr zero, 0(a0)\n");
+    }
+}
