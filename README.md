@@ -6,6 +6,10 @@ this `rust_nemu` only implemented `rv32im` isa, but with little modification can
 
 memory mappings are not supported yet, but probably in the future.
 
+instruction tracing is implemented originally in `cpu.rs`,
+
+function tracing is implemented but malfunctioning to a few test files
+
 ## tests
 using the [ics2021-am-kernels tests](https://github.com/NJU-ProjectN/am-kernels/tree/master/tests/cpu-tests) to check if the implementation is correct or not.
 
